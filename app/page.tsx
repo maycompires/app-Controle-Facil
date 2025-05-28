@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import type { User } from "@supabase/supabase-js"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +11,7 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
-import { Plus, DollarSign, TrendingUp, AlertTriangle, Settings } from "lucide-react"
+import { Plus, DollarSign, TrendingUp, AlertTriangle, Settings, Loader2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -19,62 +20,36 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { AuthWrapper } from "@/components/auth-wrapper"
+import { supabase } from "@/lib/supabase"
+import type { Expense, WeeklyBudget } from "@/types/database"
 
-interface Expense {
-  id: string
-  amount: number
+interface NewExpense {
+  amount: string
   category: string
   description: string
-  date: string
-}
-
-interface WeeklyBudget {
-  amount: number
-  startDate: string
 }
 
 const categories = [
-  { value: "alimentacao", label: "Alimentação", color: "#8884d8" },
-  { value: "transporte", label: "Transporte", color: "#82ca9d" },
-  { value: "lazer", label: "Lazer", color: "#ffc658" },
-  { value: "saude", label: "Saúde", color: "#ff7c7c" },
-  { value: "compras", label: "Compras", color: "#8dd1e1" },
-  { value: "outros", label: "Outros", color: "#d084d0" },
+  { value: "food", label: "Alimentação", color: "#FF6384" },
+  { value: "transport", label: "Transporte", color: "#36A2EB" },
+  { value: "housing", label: "Moradia", color: "#FFCE56" },
+  { value: "entertainment", label: "Lazer", color: "#4BC0C0" },
+  { value: "other", label: "Outros", color: "#9966FF" },
 ]
 
-export default function ExpenseTracker() {
+function ExpenseTracker({ user }: { user: User }) {
   const [expenses, setExpenses] = useState<Expense[]>([])
-  const [weeklyBudget, setWeeklyBudget] = useState<WeeklyBudget>({ amount: 0, startDate: "" })
-  const [newExpense, setNewExpense] = useState({
+  const [weeklyBudget, setWeeklyBudget] = useState<WeeklyBudget | null>(null)
+  const [newExpense, setNewExpense] = useState<NewExpense>({
     amount: "",
     category: "",
     description: "",
   })
   const [budgetAmount, setBudgetAmount] = useState("")
   const [showBudgetDialog, setShowBudgetDialog] = useState(false)
-
-  // Carregar dados do localStorage
-  useEffect(() => {
-    const savedExpenses = localStorage.getItem("expenses")
-    const savedBudget = localStorage.getItem("weeklyBudget")
-
-    if (savedExpenses) {
-      setExpenses(JSON.parse(savedExpenses))
-    }
-
-    if (savedBudget) {
-      setWeeklyBudget(JSON.parse(savedBudget))
-    }
-  }, [])
-
-  // Salvar no localStorage
-  useEffect(() => {
-    localStorage.setItem("expenses", JSON.stringify(expenses))
-  }, [expenses])
-
-  useEffect(() => {
-    localStorage.setItem("weeklyBudget", JSON.stringify(weeklyBudget))
-  }, [weeklyBudget])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
 
   // Obter início da semana atual
   const getWeekStart = () => {
@@ -82,6 +57,41 @@ export default function ExpenseTracker() {
     const dayOfWeek = now.getDay()
     const diff = now.getDate() - dayOfWeek
     return new Date(now.setDate(diff)).toISOString().split("T")[0]
+  }
+
+  // Carregar dados do Supabase
+  useEffect(() => {
+    loadData()
+  }, [user])
+
+  const loadData = async () => {
+    setLoading(true)
+
+    // Carregar despesas
+    const { data: expensesData } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+
+    if (expensesData) {
+      setExpenses(expensesData)
+    }
+
+    // Carregar orçamento da semana atual
+    const weekStart = getWeekStart()
+    const { data: budgetData } = await supabase
+      .from("weekly_budgets")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("week_start", weekStart)
+      .single()
+
+    if (budgetData) {
+      setWeeklyBudget(budgetData)
+    }
+
+    setLoading(false)
   }
 
   // Filtrar despesas da semana atual
@@ -94,37 +104,61 @@ export default function ExpenseTracker() {
   const weeklySpent = getCurrentWeekExpenses().reduce((total, expense) => total + expense.amount, 0)
 
   // Calcular progresso do orçamento
-  const budgetProgress = weeklyBudget.amount > 0 ? (weeklySpent / weeklyBudget.amount) * 100 : 0
+  const budgetProgress = weeklyBudget ? (weeklySpent / weeklyBudget.amount) * 100 : 0
 
   // Verificar se precisa de alerta
   const needsAlert = budgetProgress >= 80
 
   // Adicionar nova despesa
-  const addExpense = () => {
+  const addExpense = async () => {
     if (!newExpense.amount || !newExpense.category) return
 
-    const expense: Expense = {
-      id: Date.now().toString(),
-      amount: Number.parseFloat(newExpense.amount),
-      category: newExpense.category,
-      description: newExpense.description || "Sem descrição",
-      date: new Date().toISOString().split("T")[0],
+    setSubmitting(true)
+
+    const { data, error } = await supabase
+      .from("expenses")
+      .insert({
+        user_id: user.id,
+        amount: Number.parseFloat(newExpense.amount),
+        category: newExpense.category,
+        description: newExpense.description || "Sem descrição",
+        date: new Date().toISOString().split("T")[0],
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      setExpenses([data, ...expenses])
+      setNewExpense({ amount: "", category: "", description: "" })
     }
 
-    setExpenses([...expenses, expense])
-    setNewExpense({ amount: "", category: "", description: "" })
+    setSubmitting(false)
   }
 
   // Configurar orçamento semanal
-  const setBudget = () => {
+  const setBudget = async () => {
     if (!budgetAmount) return
 
-    setWeeklyBudget({
-      amount: Number.parseFloat(budgetAmount),
-      startDate: getWeekStart(),
-    })
-    setBudgetAmount("")
-    setShowBudgetDialog(false)
+    setSubmitting(true)
+    const weekStart = getWeekStart()
+
+    const { data, error } = await supabase
+      .from("weekly_budgets")
+      .upsert({
+        user_id: user.id,
+        amount: Number.parseFloat(budgetAmount),
+        week_start: weekStart,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      setWeeklyBudget(data)
+      setBudgetAmount("")
+      setShowBudgetDialog(false)
+    }
+
+    setSubmitting(false)
   }
 
   // Preparar dados para o gráfico
@@ -141,6 +175,14 @@ export default function ExpenseTracker() {
     })
     .filter((item) => item.value > 0)
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -151,7 +193,7 @@ export default function ExpenseTracker() {
         </div>
 
         {/* Alerta de orçamento */}
-        {needsAlert && weeklyBudget.amount > 0 && (
+        {needsAlert && weeklyBudget && (
           <Alert className="border-orange-200 bg-orange-50">
             <AlertTriangle className="h-4 w-4 text-orange-600" />
             <AlertDescription className="text-orange-800">
@@ -211,8 +253,12 @@ export default function ExpenseTracker() {
                 />
               </div>
 
-              <Button onClick={addExpense} className="w-full" disabled={!newExpense.amount || !newExpense.category}>
-                <Plus className="h-4 w-4 mr-2" />
+              <Button
+                onClick={addExpense}
+                className="w-full"
+                disabled={!newExpense.amount || !newExpense.category || submitting}
+              >
+                {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
                 Adicionar Despesa
               </Button>
             </CardContent>
@@ -228,7 +274,7 @@ export default function ExpenseTracker() {
               <CardDescription>Acompanhe seus gastos da semana</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {weeklyBudget.amount > 0 ? (
+              {weeklyBudget ? (
                 <>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Gasto atual</span>
@@ -254,7 +300,7 @@ export default function ExpenseTracker() {
                 <DialogTrigger asChild>
                   <Button variant="outline" className="w-full">
                     <Settings className="h-4 w-4 mr-2" />
-                    {weeklyBudget.amount > 0 ? "Alterar Orçamento" : "Definir Orçamento"}
+                    {weeklyBudget ? "Alterar Orçamento" : "Definir Orçamento"}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -273,7 +319,8 @@ export default function ExpenseTracker() {
                         onChange={(e) => setBudgetAmount(e.target.value)}
                       />
                     </div>
-                    <Button onClick={setBudget} className="w-full" disabled={!budgetAmount}>
+                    <Button onClick={setBudget} className="w-full" disabled={!budgetAmount || submitting}>
+                      {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                       Salvar Orçamento
                     </Button>
                   </div>
@@ -334,8 +381,7 @@ export default function ExpenseTracker() {
             <CardContent>
               <div className="space-y-2">
                 {getCurrentWeekExpenses()
-                  .slice(-5)
-                  .reverse()
+                  .slice(0, 5)
                   .map((expense) => {
                     const category = categories.find((cat) => cat.value === expense.category)
                     return (
@@ -355,4 +401,8 @@ export default function ExpenseTracker() {
       </div>
     </div>
   )
+}
+
+export default function ExpenseTrackerApp() {
+  return <AuthWrapper>{(user) => <ExpenseTracker user={user} />}</AuthWrapper>
 }
