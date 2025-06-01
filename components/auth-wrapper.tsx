@@ -17,6 +17,8 @@ interface AuthWrapperProps {
 }
 
 export function AuthWrapper({ children }: AuthWrapperProps) {
+  // Estado inicial explícito para garantir consistência entre servidor e cliente
+  const [mounted, setMounted] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [authLoading, setAuthLoading] = useState(false)
@@ -24,22 +26,36 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   const [password, setPassword] = useState("")
   const [message, setMessage] = useState("")
 
+  // Efeito para inicialização do cliente
   useEffect(() => {
-    // Verificar usuário atual
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-      setLoading(false)
-    })
+    // Marca o componente como montado
+    setMounted(true)
 
-    // Escutar mudanças de autenticação
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Função para verificar o usuário atual
+    const checkUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
+      } catch (error) {
+        console.error('Erro ao verificar usuário:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    // Verifica o usuário atual
+    checkUser()
+
+    // Escuta mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    // Limpa a subscrição ao desmontar
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   const handleSignUp = async () => {
@@ -48,18 +64,22 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     setAuthLoading(true)
     setMessage("")
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
 
-    if (error) {
-      setMessage(error.message)
-    } else {
-      setMessage("Verifique seu email para confirmar a conta!")
+      if (error) {
+        setMessage(error.message)
+      } else {
+        setMessage("Verifique seu email para confirmar a conta!")
+      }
+    } catch (error) {
+      setMessage("Erro ao criar conta. Tente novamente.")
+    } finally {
+      setAuthLoading(false)
     }
-
-    setAuthLoading(false)
   }
 
   const handleSignIn = async () => {
@@ -68,23 +88,32 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     setAuthLoading(true)
     setMessage("")
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) {
-      setMessage(error.message)
+      if (error) {
+        setMessage(error.message)
+      }
+    } catch (error) {
+      setMessage("Erro ao fazer login. Tente novamente.")
+    } finally {
+      setAuthLoading(false)
     }
-
-    setAuthLoading(false)
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error)
+    }
   }
 
-  if (loading) {
+  // Renderiza um loader durante SSR e carregamento inicial
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -92,6 +121,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     )
   }
 
+  // Renderiza o formulário de login se não houver usuário
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -165,6 +195,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     )
   }
 
+  // Renderiza o conteúdo principal quando o usuário está autenticado
   return (
     <div>
       <div className="bg-white border-b px-4 py-2 flex justify-between items-center">

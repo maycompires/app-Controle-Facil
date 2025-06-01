@@ -1,30 +1,93 @@
-# Mvp despesas app
+# Controle Fácil - MVP de Controle de Despesas
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+Um aplicativo web moderno para gerenciamento de despesas pessoais, desenvolvido com Next.js, TypeScript e Supabase.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/maycom-pires-projects/v0-mvp-despesas-app)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/5WgRGxYJmH3)
+## 🚀 Funcionalidades
 
-## Overview
+- 📊 Dashboard com visão geral das despesas
+- 💰 Registro de despesas com categorização
+- 📈 Gráficos e relatórios de gastos
+- 🔍 Filtros e busca de transações
+- 📱 Interface responsiva e moderna
+- 🔐 Autenticação segura
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+## 🛠️ Tecnologias Utilizadas
 
-## Deployment
+- **Frontend:**
+  - Next.js 15
+  - TypeScript
+  - Tailwind CSS
+  - Shadcn/ui
+  - React Query
+  - React Hook Form
+  - Zod
 
-Your project is live at:
+- **Backend:**
+  - Supabase (PostgreSQL)
+  - Prisma ORM
 
-**[https://vercel.com/maycom-pires-projects/v0-mvp-despesas-app](https://vercel.com/maycom-pires-projects/v0-mvp-despesas-app)**
+## 📋 Pré-requisitos
 
-## Build your app
+- Node.js (versão LTS recomendada)
+- npm ou yarn
+- Conta no Supabase
 
-Continue building your app on:
+## 🔧 Configuração do Ambiente
 
-**[https://v0.dev/chat/projects/5WgRGxYJmH3](https://v0.dev/chat/projects/5WgRGxYJmH3)**
+1. Clone o repositório:
+```bash
+git clone [URL_DO_REPOSITÓRIO]
+cd mvp-despesas-app
+```
 
-## How It Works
+2. Instale as dependências:
+```bash
+npm install
+```
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+3. Configure as variáveis de ambiente:
+   - Crie um arquivo `.env.local` na raiz do projeto
+   - Adicione as seguintes variáveis:
+```env
+NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
+```
+
+4. Execute o projeto em modo de desenvolvimento:
+```bash
+npm run dev
+```
+
+## 📁 Estrutura do Projeto
+
+```
+mvp-despesas-app/
+├── app/                    # Rotas e páginas da aplicação
+├── components/            # Componentes React reutilizáveis
+├── lib/                   # Utilitários e configurações
+├── prisma/               # Schema e migrações do Prisma
+├── public/               # Arquivos estáticos
+└── types/                # Definições de tipos TypeScript
+```
+
+## 🔐 Segurança
+
+- As chaves sensíveis do Supabase são gerenciadas através de variáveis de ambiente
+- O arquivo `.env.local` não é versionado no repositório
+- Autenticação implementada com Supabase Auth
+
+## 🚀 Deploy
+
+O projeto pode ser facilmente implantado em plataformas como Vercel ou Netlify. Certifique-se de configurar as variáveis de ambiente no ambiente de produção.
+
+## 📝 Licença
+
+Este projeto está sob a licença MIT.
+
+## 👥 Contribuição
+
+Contribuições são bem-vindas! Por favor, leia as diretrizes de contribuição antes de enviar um pull request.
+
+## 📧 Contato
+
+Para mais informações ou suporte, entre em contato através de [SEU_EMAIL].
