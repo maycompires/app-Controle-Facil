@@ -1,4 +1,4 @@
-# Controle Fácil - MVP de Controle de Despesas
+ Controle Fácil - MVP de Controle de Despesas
 
 Um aplicativo web moderno para gerenciamento de despesas pessoais, desenvolvido com Next.js, TypeScript e Supabase.
 
@@ -91,3 +91,4 @@ Contribuições são bem-vindas! Por favor, leia as diretrizes de contribuição
 ## 📧 Contato
 
 Para mais informações ou suporte, entre em contato através de [SEU_EMAIL].
+#
