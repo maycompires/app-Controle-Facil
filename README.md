@@ -90,5 +90,5 @@ Contribuições são bem-vindas! Por favor, leia as diretrizes de contribuição
 
 ## 📧 Contato
 
-Para mais informações ou suporte, entre em contato através de [SEU_EMAIL].
+Para mais informações ou suporte, entre em contato através de maycom.pires@edu.univali.br.
 #
