@@ -65,7 +65,20 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     setMessage("")
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Primeiro, tenta fazer login para verificar se a conta já existe
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (!signInError) {
+        // Se conseguiu fazer login, a conta já existe
+        setMessage("Login realizado com sucesso!")
+        return
+      }
+
+      // Se não conseguiu fazer login, tenta criar a conta
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       })
@@ -73,7 +86,17 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
       if (error) {
         setMessage(error.message)
       } else {
-        setMessage("Verifique seu email para confirmar a conta!")
+        // Se o cadastro foi bem-sucedido, tenta fazer login automaticamente
+        const { error: autoSignInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (autoSignInError) {
+          setMessage("Conta criada com sucesso! Faça login para continuar.")
+        } else {
+          setMessage("Conta criada e login realizado com sucesso!")
+        }
       }
     } catch (error) {
       setMessage("Erro ao criar conta. Tente novamente.")
@@ -161,7 +184,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
                 </div>
 
                 {message && (
-                  <div className={`text-sm ${message.includes("Verifique") ? "text-green-600" : "text-red-600"}`}>
+                  <div className={`text-sm ${message.includes("sucesso") ? "text-green-600" : "text-red-600"}`}>
                     {message}
                   </div>
                 )}
