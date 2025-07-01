@@ -308,7 +308,7 @@ function ExpenseTracker({ user }: { user: User }) {
                 <DollarSign className="h-5 w-5" />
                 Orçamento Semanal
               </CardTitle>
-              <CardDescription>Acompanhe seus gastos da semana</CardDescription>
+              <CardDescription>Defina um Valor para seus gastos da semana</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {weeklyBudget ? (
