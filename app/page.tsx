@@ -36,6 +36,11 @@ const categories = [
   { value: "housing", label: "Moradia", color: "#FFCE56" },
   { value: "entertainment", label: "Lazer", color: "#4BC0C0" },
   { value: "other", label: "Outros", color: "#9966FF" },
+  { value: "health", label: "Saúde", color: "#43A047" },
+  { value: "education", label: "Educação", color: "#1E88E5" },
+  { value: "shopping", label: "Compras", color: "#F06292" },
+  { value: "travel", label: "Viagem", color: "#8D6E63" },
+  { value: "investments", label: "Investimentos", color: "#FFD600" },
 ]
 
 function ExpenseTracker({ user }: { user: User }) {
@@ -50,6 +55,7 @@ function ExpenseTracker({ user }: { user: User }) {
   const [showBudgetDialog, setShowBudgetDialog] = useState(false)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [budgetMessage, setBudgetMessage] = useState<string | null>(null)
 
   // Obter início da semana atual
   const getWeekStart = () => {
@@ -140,6 +146,7 @@ function ExpenseTracker({ user }: { user: User }) {
     if (!budgetAmount) return
 
     setSubmitting(true)
+    setBudgetMessage(null)
     const weekStart = getWeekStart()
 
     const { data, error } = await supabase
@@ -155,9 +162,39 @@ function ExpenseTracker({ user }: { user: User }) {
     if (!error && data) {
       setWeeklyBudget(data)
       setBudgetAmount("")
-      setShowBudgetDialog(false)
+      setBudgetMessage("Orçamento atualizado com sucesso!")
+      setTimeout(() => {
+        setShowBudgetDialog(false)
+        setBudgetMessage(null)
+      }, 1500)
+    } else {
+      setBudgetMessage("Erro ao atualizar o orçamento. Tente novamente.")
     }
 
+    setSubmitting(false)
+  }
+
+  // Excluir orçamento semanal
+  const deleteBudget = async () => {
+    setSubmitting(true)
+    setBudgetMessage(null)
+    const weekStart = getWeekStart()
+    const { error } = await supabase
+      .from("weekly_budgets")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("week_start", weekStart)
+    if (!error) {
+      setWeeklyBudget(null)
+      setBudgetAmount("")
+      setBudgetMessage("Orçamento excluído com sucesso!")
+      setTimeout(() => {
+        setShowBudgetDialog(false)
+        setBudgetMessage(null)
+      }, 1500)
+    } else {
+      setBudgetMessage("Erro ao excluir o orçamento. Tente novamente.")
+    }
     setSubmitting(false)
   }
 
@@ -188,7 +225,7 @@ function ExpenseTracker({ user }: { user: User }) {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Controle de Gastos</h1>
+          <img src="/logo.png" alt="Logo App Controle Fácil" className="mx-auto w-32 h-32" />
           <p className="text-gray-600 mt-2">Gerencie suas despesas semanais de forma simples</p>
         </div>
 
@@ -309,6 +346,9 @@ function ExpenseTracker({ user }: { user: User }) {
                     <DialogDescription>Defina quanto você pretende gastar esta semana</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
+                    {budgetMessage && (
+                      <div className={`text-sm text-center ${budgetMessage.includes("sucesso") ? "text-green-600" : "text-red-600"}`}>{budgetMessage}</div>
+                    )}
                     <div>
                       <Label htmlFor="budget">Valor do Orçamento (R$)</Label>
                       <Input
@@ -323,6 +363,11 @@ function ExpenseTracker({ user }: { user: User }) {
                       {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                       Salvar Orçamento
                     </Button>
+                    {weeklyBudget && (
+                      <Button onClick={deleteBudget} className="w-full mt-2" variant="destructive" disabled={submitting}>
+                        Excluir Orçamento
+                      </Button>
+                    )}
                   </div>
                 </DialogContent>
               </Dialog>

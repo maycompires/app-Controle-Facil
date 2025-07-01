@@ -81,6 +81,9 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: "https://appcontrolefacil.site"
+        }
       })
 
       if (error) {
@@ -93,7 +96,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
         })
 
         if (autoSignInError) {
-          setMessage("Conta criada com sucesso! Faça login para continuar.")
+          setMessage("Conta criada com sucesso! Confirme o email para continuar.")
         } else {
           setMessage("Conta criada e login realizado com sucesso!")
         }
@@ -149,8 +152,8 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle>Controle de Gastos</CardTitle>
+          <CardHeader className="text-center flex flex-col items-center">
+            <img src="/logo.png" alt="Logo App Controle Fácil" className="w-48 h-48 mx-auto" />
             <CardDescription>Entre ou crie sua conta para começar</CardDescription>
           </CardHeader>
           <CardContent>
